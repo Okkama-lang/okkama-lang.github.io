@@ -5,6 +5,7 @@
 .docs-lead{font-size:clamp(1.1rem,2.3vw,1.45rem);line-height:1.5;color:var(--muted);max-width:51ch}
 .docs-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:clamp(30px,6vw,58px) 0 1.8rem}
 .docs-card{display:grid;grid-template-rows:auto auto 1fr auto;gap:.65rem;padding:clamp(1.25rem,3vw,2.25rem);border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(160deg,var(--panel-light),var(--panel))}
+.docs-card-bible{grid-column:1/-1}
 .docs-card:hover{border-color:var(--yellow)}.docs-card small,.docs-card span{font:700 .76rem var(--mono);color:var(--yellow)}
 .docs-card strong{font-size:1.48rem;letter-spacing:-.035em}.docs-card p{color:var(--muted);max-width:44ch}.docs-card span{margin-top:.5rem}
 .docs-meta{color:var(--muted);font-size:.85rem}.docs-meta a,.docs-prose a{text-decoration:underline;text-underline-offset:.17em;text-decoration-color:#ffc32388}.docs-meta a:hover,.docs-prose a:hover{color:var(--yellow)}

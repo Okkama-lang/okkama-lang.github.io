@@ -65,7 +65,8 @@ def main():
     cards = f'''<a class="docs-card" href="/start/"><small>01 / GET RUNNING</small><strong>Quickstart</strong><p>Install Okkama and run your first payment example.</p><span>Start here →</span></a>
 <a class="docs-card" href="/tutorial/"><small>02 / BUILD A MODEL</small><strong>Hands-on tutorial</strong><p>Use roles and successors to model a payment that cannot be captured before authorization.</p><span>Open the tutorial →</span></a>
 <a class="docs-card" href="/docs/book/"><small>03 / GO DEEPER</small><strong>The Okkama Book</strong><p>Read the language guide in your browser, from first principles to objects, roles, and modules.</p><span>Read the book →</span></a>
-{manual}'''
+{manual}
+<a class="docs-card docs-card-bible" href="https://github.com/Okkama-lang/okkama/blob/develop/docs/OkkamaBible/OkkamaBible.pdf"><small>DEEP DIVE / PDF · 700+ PAGES</small><strong>The Okkama Bible</strong><p>The full-length guide to Okkama, from language fundamentals to advanced topics.</p><span>Read the Bible →</span></a>'''
     intro = f'''<main class="docs-home" id="content">
 <p class="docs-kicker">OKKAMA / DOCUMENTATION</p><h1>Learn Okkama<span class="docs-dot">.</span></h1>
 <p class="docs-lead">Get a program running, work through a small domain model, or look up exactly the thing you came for.</p>
