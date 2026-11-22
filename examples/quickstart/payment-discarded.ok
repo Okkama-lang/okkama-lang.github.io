@@ -1,0 +1,58 @@
+module quickstart/payment v1.0.0;
+
+import "io/stdout" take Stdout;
+
+role Created {
+    status() is string;
+    authorize() is ^Authorized;
+}
+
+role Authorized {
+    status() is string;
+    capture() is ^Captured;
+}
+
+role Captured {
+    status() is string;
+}
+
+hidden enum Stage = (created, authorized, captured);
+enum PaymentError is Error = (invalid_transition);
+
+hidden object Payment does Created, Authorized, Captured {
+    has stage is Stage = Stage.created;
+    Payment();
+
+    status() is string {
+        match stage {
+            case Stage.created { "created"; }
+            case Stage.authorized { "authorized"; }
+            case Stage.captured { "captured"; }
+        }
+    }
+
+    authorize() is ^Payment {
+        confirm stage == Stage.created else throw PaymentError.invalid_transition;
+        ^stage = Stage.authorized;
+    }
+
+    capture() is ^Payment {
+        confirm stage == Stage.authorized else throw PaymentError.invalid_transition;
+        ^stage = Stage.captured;
+    }
+}
+
+object Payments {
+    Payments();
+    create() is Created { Payment(); }
+}
+
+main() is int {
+    let out = Stdout();
+    let created = Payments().create();
+    let authorized = created.authorize();
+    authorized.capture();
+    out.writeln("Original: " + created.status());
+    out.writeln("After authorization: " + authorized.status());
+    0;
+}

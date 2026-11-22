@@ -5,23 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#040816">
   <meta name="description" content="Okkama is a statically typed object language. Immutable objects, explicit state transitions, roles, and errors as enums.">
-  <title>Okkama — code with clear intent</title>
+  <title>Okkama | Code with clear intent</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <header class="header">
-    <div class="shell header-inner">
-      <a class="brand" href="#" aria-label="Okkama, home"><span class="brand-mark" aria-hidden="true">0&lt;</span><span>okkama<span class="brand-dot">.</span></span></a>
-      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="navigation" aria-label="Open menu"><span></span><span></span></button>
-      <nav class="nav" id="navigation" aria-label="Main navigation">
-        <a href="#ideas">Ideas</a><a href="#code">Code</a><a href="#purpose">Why Okkama</a><a href="#start">Get started</a><a href="/man/">Reference</a>
-        <a class="nav-github" href="https://github.com/Okkama-lang/okkama" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.76-.24.76-.54v-2.1c-3.12.68-3.78-1.33-3.78-1.33-.5-1.3-1.24-1.64-1.24-1.64-1.02-.7.08-.68.08-.68 1.12.08 1.72 1.15 1.72 1.15 1 1.71 2.62 1.22 3.26.93.1-.72.4-1.22.71-1.5-2.5-.29-5.13-1.25-5.13-5.54 0-1.22.44-2.23 1.15-3.01-.12-.29-.5-1.43.11-2.97 0 0 .94-.3 3.08 1.15a10.7 10.7 0 0 1 5.6 0c2.13-1.45 3.07-1.15 3.07-1.15.61 1.54.23 2.68.11 2.97.72.78 1.15 1.79 1.15 3.01 0 4.3-2.63 5.25-5.14 5.53.4.35.76 1.03.76 2.08v3.1c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z"/></svg>GitHub<span aria-hidden="true">↗</span></a>
-      </nav>
-    </div>
-  </header>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="header"><div class="shell header-inner">
+<a class="brand" href="/" aria-label="Okkama, home"><span class="brand-mark" aria-hidden="true">0&lt;</span><span>okkama<span class="brand-dot">.</span></span></a>
+<button class="menu-toggle" type="button" aria-expanded="false" aria-controls="navigation" aria-label="Open menu"><span></span><span></span></button>
+<nav class="nav" id="navigation" aria-label="Main navigation"><a href="/start/">Try Okkama</a><a href="/tutorial/">Tutorial</a><a href="/docs/">Docs</a><a href="/man/">Standard library</a><a class="nav-github" href="https://github.com/Okkama-lang/okkama">GitHub</a></nav>
+</div></header>
   <main id="main">
     <section class="hero shell" aria-labelledby="hero-title">
       <div class="hero-copy">
@@ -29,8 +24,8 @@
         <h1 id="hero-title">Code with<br> <span>clear intent.</span></h1>
         <p class="hero-description">Behavior in objects. Contracts in roles.<br class="desktop-break"> State transitions you can see in the code.</p>
         <p class="hero-detail">Okkama turns the ideas of Elegant Objects into language rules: static typing, immutable objects, and composition instead of inheritance.</p>
-        <div class="hero-actions"><a class="button button-yellow" href="#code">Explore the code <span aria-hidden="true">↗</span></a><a class="button button-text" href="https://github.com/Okkama-lang/okkama/blob/develop/docs/OkkamaBook.md" target="_blank" rel="noopener noreferrer">Read the book <span aria-hidden="true">→</span></a></div>
-        <div class="hero-meta"><span class="tiny-square"></span>The language and standard library are evolving</div>
+        <div class="hero-actions"><a class="button button-yellow" href="/start/">Try Okkama</a><a class="button button-text" href="/tutorial/">Learn the language</a></div>
+        <div class="hero-meta"><span class="tiny-square"></span>Quickstart verified with Okkama 0.6.2</div>
       </div>
       <div class="hero-art">
         <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
@@ -56,20 +51,99 @@
     </section>
 
     <section class="code-section" id="code" aria-labelledby="code-title"><div class="shell code-layout">
-      <div class="code-intro"><p class="eyebrow"><span class="section-index">02 /</span> A TASTE OF THE CODE</p><h2 id="code-title">Intent in<br> plain sight.</h2><p>Read the signature.<br> Understand the intent.</p><div class="example-explanation" aria-live="polite"><span class="small-label" id="example-kicker">IMMUTABILITY</span><h3 id="example-title">Open a new bottle.</h3><p id="example-description">open() returns a successor. The closed bottle stays unchanged, and the new state gets a new name.</p></div><a class="inline-link" href="https://github.com/Okkama-lang/okkama/tree/develop/examples" target="_blank" rel="noopener noreferrer">More examples <span aria-hidden="true">↗</span></a></div>
-      <div class="editor"><div class="editor-top"><div class="editor-tabs" role="tablist" aria-label="Okkama examples"><button id="tab-successor" class="editor-tab" type="button" role="tab" aria-selected="true" aria-controls="code-panel" tabindex="0" data-example="successor">Successor</button><button id="tab-errors" class="editor-tab" type="button" role="tab" aria-selected="false" aria-controls="code-panel" tabindex="-1" data-example="errors">Errors</button><button id="tab-roles" class="editor-tab" type="button" role="tab" aria-selected="false" aria-controls="code-panel" tabindex="-1" data-example="roles">Roles</button></div><span class="editor-lang">.ok</span></div><div class="editor-filebar"><span><span class="file-dot"></span><span id="example-filename">bottle.ok</span></span><button class="copy-button" type="button" id="copy-code" aria-label="Copy code example"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="6" width="9" height="11" rx="2"></rect><path d="M12 6V3H3v11h4"></path></svg><span>Copy</span></button></div><div class="code-panel" id="code-panel" role="tabpanel" aria-labelledby="tab-successor" tabindex="0"><pre><code id="example-code"></code></pre></div><div class="editor-bottom"><span><span class="status-dot"></span>Okkama</span><span id="example-footnote">The original object stays unchanged</span><a href="examples/bottle.ok" download id="download-code" aria-label="Download bottle.ok">↓ .ok</a></div></div>
+      <div class="code-intro"><p class="eyebrow"><span class="section-index">02 /</span> A TASTE OF THE CODE</p><h2 id="code-title">Intent in<br> plain sight.</h2><p>Read the signature.<br> Understand the intent.</p><div class="example-explanation" aria-live="polite"><span class="small-label" id="example-kicker">IMMUTABILITY</span><h3 id="example-title">Open a new bottle.</h3><p id="example-description">open() returns a successor. The closed bottle stays unchanged, and the new state gets a new name.</p></div><a class="inline-link" href="https://github.com/Okkama-lang/okkama/tree/develop/examples" target="_blank" rel="noopener noreferrer">More examples </a></div>
+<div class="editor"><div class="editor-top"><div class="editor-tabs" role="tablist" aria-label="Okkama examples"><button id="tab-successor" class="editor-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-successor" tabindex="0" data-example="successor">Successor</button><button id="tab-errors" class="editor-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-errors" tabindex="-1" data-example="errors">Errors</button><button id="tab-roles" class="editor-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-roles" tabindex="-1" data-example="roles">Roles</button></div><span class="editor-source-label">Complete Okkama examples</span><span class="editor-lang">.ok</span></div><section class="example-source" id="panel-successor" role="tabpanel" aria-labelledby="tab-successor" data-example-panel="successor" data-kicker="IMMUTABILITY" data-title="Open a new bottle." data-description="open() returns a successor. The closed bottle stays unchanged, and the new state gets a new name."><h3>Open a new bottle.</h3><div class="editor-filebar"><span>bottle.ok</span><button class="copy-button" type="button" data-copy="#source-successor" aria-label="Copy bottle.ok">Copy</button></div><div class="code-panel" tabindex="0" aria-label="bottle.ok source"><pre><code id="source-successor"><span class="token-keyword">module</span> bottle v1.<span class="token-number">0.0</span>;
+
+<span class="token-keyword">object</span> <span class="token-type">Bottle</span> {
+    <span class="token-keyword">has</span> opened <span class="token-keyword">is</span> <span class="token-type">bool</span> = <span class="token-keyword">false</span>;
+    <span class="token-type">Bottle</span>();
+
+    open() <span class="token-keyword">is</span> <span class="token-successor">^Bottle</span> {
+        <span class="token-keyword">confirm</span> !opened;
+        <span class="token-successor">^opened</span> = <span class="token-keyword">true</span>;
+    }
+
+    is_open() <span class="token-keyword">is</span> <span class="token-type">bool</span> { opened; }
+}
+
+<span class="token-keyword">main</span>() <span class="token-keyword">is</span> <span class="token-type">int</span> {
+    <span class="token-keyword">let</span> bottle = <span class="token-type">Bottle</span>();
+    <span class="token-keyword">let</span> opened = bottle.open();
+
+    <span class="token-keyword">confirm</span> !bottle.is_open();  <span class="token-comment">// original unchanged</span>
+    <span class="token-keyword">confirm</span> opened.is_open();  <span class="token-comment">// new state</span>
+    <span class="token-number">0</span>;
+}
+</code></pre></div><div class="editor-bottom"><span>The original object stays unchanged</span><a href="/examples/bottle.ok" download>Download .ok</a></div></section><section class="example-source" id="panel-errors" role="tabpanel" aria-labelledby="tab-errors" data-example-panel="errors" data-kicker="TYPED ERRORS" data-title="Errors with a clear meaning." data-description="An error is an enum with data. Handle a specific case and access its payload directly in catch."><h3>Errors with a clear meaning.</h3><div class="editor-filebar"><span>payment.ok</span><button class="copy-button" type="button" data-copy="#source-errors" aria-label="Copy payment.ok">Copy</button></div><div class="code-panel" tabindex="0" aria-label="payment.ok source"><pre><code id="source-errors"><span class="token-keyword">module</span> payment v1.<span class="token-number">0.0</span>;
+<span class="token-keyword">import</span> <span class="token-string">&quot;io/stdout&quot;</span> <span class="token-keyword">take</span> <span class="token-type">Stdout</span>;
+
+<span class="token-keyword">enum</span> <span class="token-type">PaymentError</span> <span class="token-keyword">is</span> <span class="token-type">Error</span> = (
+    declined(reason <span class="token-keyword">is</span> <span class="token-type">string</span>),
+    timeout(ms <span class="token-keyword">is</span> <span class="token-type">int</span>)
+);
+
+<span class="token-keyword">object</span> <span class="token-type">Gateway</span> {
+    <span class="token-type">Gateway</span>();
+
+    charge(cents <span class="token-keyword">is</span> <span class="token-type">int</span>) <span class="token-keyword">is</span> <span class="token-type">string</span> {
+        <span class="token-keyword">confirm</span> cents &gt; <span class="token-number">0</span>
+            <span class="token-keyword">else</span> <span class="token-keyword">throw</span> <span class="token-type">PaymentError</span>.declined(<span class="token-string">&quot;empty cart&quot;</span>);
+        <span class="token-string">&quot;receipt #&quot;</span> + cents.<span class="token-type">string</span>();
+    }
+}
+
+<span class="token-keyword">main</span>() <span class="token-keyword">is</span> <span class="token-type">int</span> {
+    <span class="token-keyword">let</span> out = <span class="token-type">Stdout</span>();
+    <span class="token-keyword">try</span> { <span class="token-type">Gateway</span>().charge(<span class="token-number">0</span>); }
+    <span class="token-keyword">catch</span> <span class="token-type">PaymentError</span>.declined(reason) {
+        out.writeln(<span class="token-string">&quot;declined: &quot;</span> + reason);
+    }
+    <span class="token-keyword">catch</span> <span class="token-type">PaymentError</span>.timeout(_) {
+        out.writeln(<span class="token-string">&quot;try again later&quot;</span>);
+    }
+    <span class="token-number">0</span>;
+}
+</code></pre></div><div class="editor-bottom"><span>enum · confirm · throw · catch</span><a href="/examples/payment.ok" download>Download .ok</a></div></section><section class="example-source" id="panel-roles" role="tabpanel" aria-labelledby="tab-roles" data-example-panel="roles" data-kicker="ROLES AND TESTING" data-title="A contract you can test." data-description="A role describes the available behavior. Its fake is a test implementation of the same contract, right beside its declaration."><h3>A contract you can test.</h3><div class="editor-filebar"><span>package-test.ok</span><button class="copy-button" type="button" data-copy="#source-roles" aria-label="Copy package-test.ok">Copy</button></div><div class="code-panel" tabindex="0" aria-label="package-test.ok source"><pre><code id="source-roles"><span class="token-keyword">module</span> packages v1.<span class="token-number">0.0</span>;
+
+<span class="token-keyword">role</span> <span class="token-type">Package</span> {
+    open() <span class="token-keyword">is</span> <span class="token-successor">^Package</span>;
+    is_open() <span class="token-keyword">is</span> <span class="token-type">bool</span>;
+
+    <span class="token-keyword">fake</span> {
+        <span class="token-keyword">has</span> opened <span class="token-keyword">is</span> <span class="token-type">bool</span> = <span class="token-keyword">false</span>;
+
+        open() <span class="token-keyword">is</span> <span class="token-successor">^Package</span> {
+            <span class="token-successor">^opened</span> = <span class="token-keyword">true</span>;
+        }
+
+        is_open() <span class="token-keyword">is</span> <span class="token-type">bool</span> { opened; }
+    }
+}
+
+<span class="token-keyword">test</span> <span class="token-string">&quot;a package can be opened&quot;</span> {
+    <span class="token-keyword">let</span> package <span class="token-keyword">is</span> <span class="token-type">Package</span> = <span class="token-type">Package</span>.<span class="token-keyword">fake</span>();
+
+    <span class="token-keyword">test</span>.ok(package.open().is_open());
+    <span class="token-keyword">test</span>.ok(!package.is_open());
+}
+</code></pre></div><div class="editor-bottom"><span>Run: okkama -t package-test.ok</span><a href="/examples/package-test.ok" download>Download .ok</a></div></section></div>
     </div></section>
 
-    <section class="state-section shell" aria-labelledby="state-title"><div class="state-copy"><p class="eyebrow"><span class="section-index">03 /</span> STATE WITHOUT SURPRISES</p><h2 id="state-title">Visible changes.<br> Intact originals.</h2><p>A transition creates a successor. The original object stays valid and unchanged. Open the bottle and see what happens to both values.</p><p class="state-caveat">This illustrates the model; it does not execute Okkama. Immutable objects do not eliminate side effects. Files, networking, and external state still need explicit design.</p></div><div class="state-demo" data-opened="false"><div class="demo-label"><span>SUCCESSOR / VISUALIZED</span><span class="live-label">INTERACTIVE</span></div><div class="state-flow"><div class="state-node original"><span class="state-name">bottle</span><div class="bottle-icon" aria-hidden="true"><div class="bottle-cap"></div><div class="bottle-neck"></div><div class="bottle-body"><span>0&lt;</span></div></div><span class="state-type">Bottle</span><span class="state-property">is_open() → <b>false</b></span></div><div class="state-connector"><span>open()</span><span class="flow-arrow" aria-hidden="true">⟶</span></div><div class="state-node successor" aria-hidden="true"><span class="state-name">opened</span><div class="bottle-icon" aria-hidden="true"><div class="bottle-cap"></div><div class="bottle-neck"></div><div class="bottle-body"><span>0&lt;</span></div></div><span class="state-type">^Bottle</span><span class="state-property">is_open() → <b>true</b></span></div></div><div class="state-command"><code>let opened = bottle.open();</code><button type="button" class="demo-button" id="run-demo"><span aria-hidden="true">↗</span> Create successor</button></div><p class="demo-message" aria-live="polite" id="demo-message">Two values. No changes to the original object.</p></div></section>
+    <section class="state-section shell" aria-labelledby="state-title"><div class="state-copy"><p class="eyebrow"><span class="section-index">03 /</span> STATE WITHOUT SURPRISES</p><h2 id="state-title">Visible changes.<br> Intact originals.</h2><p>A transition creates a successor. The original object stays valid and unchanged. Open the bottle and see what happens to both values.</p><p class="state-caveat">This illustrates the model; it does not execute Okkama. Immutable objects do not eliminate side effects or coordinate concurrent database writes. External state still needs explicit design.</p></div><div class="state-demo" data-opened="false"><div class="demo-label"><span>SUCCESSOR / VISUALIZED</span><span class="live-label">INTERACTIVE</span></div><div class="state-flow"><div class="state-node original"><span class="state-name">bottle</span><div class="bottle-icon" aria-hidden="true"><div class="bottle-cap"></div><div class="bottle-neck"></div><div class="bottle-body"><span>0&lt;</span></div></div><span class="state-type">Bottle</span><span class="state-property">is_open() → <b>false</b></span></div><div class="state-connector"><span>open()</span><span class="flow-arrow" aria-hidden="true">⟶</span></div><div class="state-node successor"><span class="state-name">opened</span><div class="bottle-icon" aria-hidden="true"><div class="bottle-cap"></div><div class="bottle-neck"></div><div class="bottle-body"><span>0&lt;</span></div></div><span class="state-type">^Bottle</span><span class="state-property">is_open() → <b>true</b></span></div></div><div class="state-command"><code>let opened = bottle.open();</code><button type="button" class="demo-button" id="run-demo">Create successor</button></div><p class="demo-message" aria-live="polite" id="demo-message">Two values. No changes to the original object.</p></div></section>
 
     <section class="purpose-section" id="purpose" aria-labelledby="purpose-title"><div class="shell purpose-layout"><div class="purpose-heading"><p class="eyebrow"><span class="section-index">04 /</span> WHY IT MATTERS</p><h2 id="purpose-title">Meaning<br> over magic.</h2><p>Okkama is worth exploring when your code needs to speak the language of your domain.</p><span class="purpose-mark" aria-hidden="true">0&lt;</span></div><div class="use-cases"><article><span class="use-number">01</span><div><h3>Domain models</h3><p>Orders, payments, and documents with rules of their own. Constructors check invariants. Actions express business intent.</p><span class="use-tags">DDD · INVARIANTS · BEHAVIOR</span></div><span class="use-arrow" aria-hidden="true">↗</span></article><article><span class="use-number">02</span><div><h3>Explicit protocols</h3><p>Created → authorized → captured. Roles and successors help describe which actions are valid in each state.</p><span class="use-tags">STATE VIEWS · CONTRACTS</span></div><span class="use-arrow" aria-hidden="true">↗</span></article><article><span class="use-number">03</span><div><h3>Testable boundaries</h3><p>Errors as enums. Dependencies through roles. Test fakes alongside their contracts. Fewer implicit agreements between parts of a system.</p><span class="use-tags">BACKEND · TESTING</span></div><span class="use-arrow" aria-hidden="true">↗</span></article><p class="purpose-note">The language and ecosystem are evolving. Before using Okkama in production, check the modules you need, current limitations, and runtime maturity.</p></div></div></section>
 
-    <section class="section shell start-section" id="start" aria-labelledby="start-title"><div class="section-top"><p class="eyebrow"><span class="section-index">05 /</span> YOUR FIRST STEPS</p><span class="section-side-note">One language. One VM.</span></div><div class="start-grid"><div><h2 id="start-title">Start<br> simple.</h2><p class="start-intro">Install the tools from Releases,<br> create a project, and run your first .ok file.</p><a class="button button-yellow" href="https://github.com/Okkama-lang/okkama/releases" target="_blank" rel="noopener noreferrer">Download Okkama <span aria-hidden="true">↗</span></a><p class="platforms">macOS · Linux x86_64</p></div><div class="terminal"><div class="terminal-heading"><span><i></i><i></i><i></i></span><span>hello, okkama</span><button type="button" class="copy-button" id="copy-start" aria-label="Copy quick-start commands">Copy</button></div><div class="terminal-body"><p class="terminal-comment"># After installing Okkama</p><p><span class="prompt">$</span> blade new hello <span class="terminal-muted">&amp;&amp;</span> cd hello</p><p><span class="prompt">$</span> okkama src/main.ok</p><p class="terminal-comment command-gap"># Look up any module of the standard library</p><p><span class="prompt">$</span> okkama man <span class="terminal-muted">io/stdout</span></p><p><span class="prompt">$</span> okkama repl</p></div><div class="engine-row"><span>Sparrow VM + JIT</span><span>REPL · LSP</span><span>okkama man</span></div></div></div>
-      <div class="resources"><a href="https://github.com/Okkama-lang/okkama/blob/develop/docs/OkkamaBook.md" target="_blank" rel="noopener noreferrer"><span class="resource-icon" aria-hidden="true">{ }</span><div><h3>The Okkama Book</h3><p>From first principles to the language in depth</p></div><span aria-hidden="true">↗</span></a><a href="/man/"><span class="resource-icon" aria-hidden="true">0&lt;</span><div><h3>Standard library</h3><p>Every module and action, searchable, from <code>okkama man</code></p></div><span aria-hidden="true">↗</span></a><a href="https://github.com/Okkama-lang/okkama/tree/develop/examples" target="_blank" rel="noopener noreferrer"><span class="resource-icon" aria-hidden="true">&gt;_</span><div><h3>Examples</h3><p>Explore the language through working examples</p></div><span aria-hidden="true">↗</span></a></div>
+    <section class="section shell start-section" id="start" aria-labelledby="start-title"><div class="section-top"><p class="eyebrow"><span class="section-index">05 /</span> YOUR FIRST STEPS</p><span class="section-side-note">One language. One VM.</span></div><div class="start-grid"><div><h2 id="start-title">Start<br> simple.</h2><p class="start-intro">Install a pinned release, run a payment model, then try a transition the compiler rejects.</p><a class="button button-yellow" href="/start/">Try Okkama</a><p class="platforms">macOS · Linux x86_64</p></div><div class="terminal"><div class="terminal-heading"><span><i></i><i></i><i></i></span><span>your first payment model</span><button type="button" class="copy-button" id="copy-start" data-copy="#home-commands" aria-label="Copy quick-start commands">Copy</button></div><div class="terminal-body"><pre><code id="home-commands"># Download the complete files from the quickstart
+okkama payment.ok
+okkama check payment-invalid.ok
+
+# Explore the installed tools
+okkama man io/stdout
+okkama repl</code></pre></div><div class="engine-row"><span>Sparrow VM + JIT</span><span>REPL · LSP</span><span>okkama man</span></div></div></div>
+      <div class="resources"><a href="/docs/book/"><span class="resource-icon" aria-hidden="true">{ }</span><div><h3>The Okkama Book</h3><p>From first principles to the language in depth, on this site</p></div></a><a href="/man/"><span class="resource-icon" aria-hidden="true">0&lt;</span><div><h3>Standard library</h3><p>Every module and action, searchable, from <code>okkama man</code></p></div></a><a href="/tutorial/"><span class="resource-icon" aria-hidden="true">&gt;_</span><div><h3>Guided tutorial</h3><p>Build a small domain model, one concept at a time</p></div></a></div>
     </section>
-    <section class="closing shell" aria-label="The Okkama philosophy"><p>Good code<br> speaks <span>for itself.</span></p><a href="#code" class="closing-mark" aria-label="Back to the code examples">0&lt;<span aria-hidden="true">↗</span></a></section>
+    <section class="closing shell" aria-label="The Okkama philosophy"><p>Good code<br> speaks <span>for itself.</span></p><a href="#code" class="closing-mark" aria-label="Back to the code examples">0&lt;</a></section>
   </main>
-  <footer class="footer"><div class="shell footer-inner"><a class="brand" href="#" aria-label="Okkama, home"><span class="brand-mark" aria-hidden="true">0&lt;</span><span>okkama<span class="brand-dot">.</span></span></a><p>Objects. Roles. Explicit transitions.</p><div><a href="/man/">Reference</a><a href="https://github.com/Okkama-lang/okkama" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a href="#main">Back to top ↑</a></div></div></footer>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<footer class="footer"><div class="shell footer-inner"><a class="brand" href="/" aria-label="Okkama, home"><span class="brand-mark" aria-hidden="true">0&lt;</span><span>okkama<span class="brand-dot">.</span></span></a><p>Objects. Roles. Explicit transitions.</p><div><a href="/start/">Quickstart</a><a href="/tutorial/">Tutorial</a><a href="/docs/">Docs</a><a href="/man/">Standard library</a><a href="https://github.com/Okkama-lang/okkama">GitHub</a></div></div></footer><div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>

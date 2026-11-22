@@ -1,0 +1,8 @@
+module tutorial/hello v1.0.0;
+import "io/stdout" take Stdout;
+
+main() is int {
+    let message = "Hello, Okkama";
+    Stdout().writeln(message);
+    0;
+}
