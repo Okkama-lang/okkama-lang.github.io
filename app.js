@@ -198,7 +198,7 @@ test "a package can be opened" {
     }
   }
   document.getElementById('copy-code').addEventListener('click', () => copyText(examples[currentExample].source));
-  document.getElementById('copy-start').addEventListener('click', () => copyText('blade new hello && cd hello\nokkama src/main.ok\n\n# Other engines\nokkama run --engine sparrow src/main.ok\nokkama run --engine jvm src/main.ok'));
+  document.getElementById('copy-start').addEventListener('click', () => copyText('blade new hello && cd hello\nokkama src/main.ok\n\n# Look up any module of the standard library\nokkama man io/stdout\nokkama repl'));
 
   const demo = document.querySelector('.state-demo');
   const run = document.getElementById('run-demo');
