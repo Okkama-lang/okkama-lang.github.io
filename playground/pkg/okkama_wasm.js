@@ -134,6 +134,22 @@ export function ir(request) {
 }
 
 /**
+ * @returns {string}
+ */
+export function lastPanic() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.lastPanic();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * @param {string} request
  * @returns {string}
  */

@@ -8,6 +8,7 @@ export const definition: (a: number, b: number) => [number, number];
 export const fmt: (a: number, b: number) => [number, number];
 export const hover: (a: number, b: number) => [number, number];
 export const ir: (a: number, b: number) => [number, number];
+export const lastPanic: () => [number, number];
 export const setFiles: (a: number, b: number) => [number, number];
 export const signature: (a: number, b: number) => [number, number];
 export const spa: (a: number, b: number) => [number, number];

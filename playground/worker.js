@@ -1,7 +1,8 @@
 // The compiler's thread: one instance of the Okkama compiler in WebAssembly (pkg/, wasm-bindgen --target web).
 // The page sends {type: 'init', module} once, then {id, fn, request}; the answer is {id, response} or, when
-// the call trapped (a compiler panic is a wasm `unreachable`), {id, trap}. A trapped instance is not used again:
-// the page ends this worker and starts a fresh one from the same compiled module.
+// the call trapped (a compiler panic is a wasm `unreachable`), {id, trap}: the panic's message and location, which
+// the trapped instance still holds (`lastPanic`, #1118), and the trap. A trapped instance is not used again: the
+// page ends this worker and starts a fresh one from the same compiled module.
 
 import * as okkama from './pkg/okkama_wasm.js';
 
@@ -34,7 +35,18 @@ self.onmessage = ({ data }) => {
     const response = JSON.parse(okkama[fn](JSON.stringify(request)));
     self.postMessage({ id, response });
   } catch (error) {
-    broken = `${error && error.name || 'Error'}: ${error && error.message || error}`;
+    const trap = `${error && error.name || 'Error'}: ${error && error.message || error}`;
+    const found = panic();
+    broken = found ? `the compiler panicked${found.location ? ` at ${found.location}` : ''}: ${found.message}\n(${trap})` : trap;
     self.postMessage({ id, trap: broken });
   }
 };
+
+/** The message and location of the panic behind a trap, read from the trapped instance; null if there was none. */
+function panic() {
+  try {
+    return JSON.parse(okkama.lastPanic()).panic;
+  } catch {
+    return null;
+  }
+}

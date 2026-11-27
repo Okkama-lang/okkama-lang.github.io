@@ -401,7 +401,8 @@ const hover = hoverTooltip(async (view, pos) => {
 
 // Completion: the compiler's items, filtered by CodeMirror while the word grows.
 const KINDS = { method: 'method', field: 'property', variable: 'variable', object: 'class', role: 'interface',
-  enum: 'enum', enumMember: 'constant', function: 'function', keyword: 'keyword', module: 'namespace', argument: 'variable' };
+  enum: 'enum', enumMember: 'constant', function: 'function', keyword: 'keyword', module: 'namespace', folder: 'namespace',
+  argument: 'variable' };
 
 async function completeOkkama(context) {
   if (!compilerReady) return null;
@@ -1023,21 +1024,15 @@ const examplesLoaded = fetch(new URL('./examples.json', import.meta.url))
     if (wanted && shared === null) replaceBuffer(storage.get(DRAFT_KEY) || SAMPLE);
   });
 
-async function passNames() {
-  // The compiler lists its passes when asked for an unknown one: "(passes: all, none, statics, …)".
-  try {
-    const answer = await engine.call('ir', { source: '', passes: '?' });
-    const list = (answer.stderr || '').match(/\(passes: ([^)]*)\)/);
-    if (!list) return;
-    const select = $('ir-passes');
-    for (const pass of list[1].split(',').map(name => name.trim())) {
-      if (!pass || pass === 'all' || pass === 'none') continue;
-      const option = document.createElement('option');
-      option.value = `after:${pass}`;
-      option.textContent = `after ${pass}`;
-      select.append(option);
-    }
-  } catch { /* the selector keeps all and none */ }
+function passNames(version) {
+  // The compiler's IR passes in their order (version().passes, the list `okkama ir --passes` takes).
+  const select = $('ir-passes');
+  for (const pass of version.passes || []) {
+    const option = document.createElement('option');
+    option.value = `after:${pass}`;
+    option.textContent = `after ${pass}`;
+    select.append(option);
+  }
 }
 
 engine.load().then(async version => {
@@ -1047,7 +1042,7 @@ engine.load().then(async version => {
     for (const [path, text] of Object.entries(examples.files)) if (path.endsWith('.ok')) files[path] = text;
     await engine.setFiles(files).catch(() => {});
   }
-  await passNames();
+  passNames(version);
   compilerReady = true;
   $('progress-bar').style.width = '100%';
   setStatus('ready', `Ready · okkama ${version.version}`);

@@ -15,6 +15,8 @@ export function hover(request: string): string;
 
 export function ir(request: string): string;
 
+export function lastPanic(): string;
+
 export function setFiles(request: string): string;
 
 export function signature(request: string): string;
@@ -36,6 +38,7 @@ export interface InitOutput {
     readonly fmt: (a: number, b: number) => [number, number];
     readonly hover: (a: number, b: number) => [number, number];
     readonly ir: (a: number, b: number) => [number, number];
+    readonly lastPanic: () => [number, number];
     readonly setFiles: (a: number, b: number) => [number, number];
     readonly signature: (a: number, b: number) => [number, number];
     readonly spa: (a: number, b: number) => [number, number];
