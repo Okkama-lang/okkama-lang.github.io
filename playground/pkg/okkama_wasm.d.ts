@@ -3,11 +3,17 @@
 
 export function ast(request: string): string;
 
+export function build(request: string): string;
+
+export function builtSpb(): Uint8Array;
+
 export function check(request: string): string;
 
 export function complete(request: string): string;
 
 export function definition(request: string): string;
+
+export function failureText(request: string): string;
 
 export function fmt(request: string): string;
 
@@ -32,9 +38,12 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly ast: (a: number, b: number) => [number, number];
+    readonly build: (a: number, b: number) => [number, number];
+    readonly builtSpb: () => [number, number];
     readonly check: (a: number, b: number) => [number, number];
     readonly complete: (a: number, b: number) => [number, number];
     readonly definition: (a: number, b: number) => [number, number];
+    readonly failureText: (a: number, b: number) => [number, number];
     readonly fmt: (a: number, b: number) => [number, number];
     readonly hover: (a: number, b: number) => [number, number];
     readonly ir: (a: number, b: number) => [number, number];

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#040816" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f6f5f0" media="(prefers-color-scheme: light)">
-  <meta name="description" content="The Okkama playground: write Okkama in the browser and see what the compiler says. Diagnostics, formatting, tokens, AST, IR and Sparrow assembly, with hover and completion. Nothing runs.">
+  <meta name="description" content="The Okkama playground: write Okkama in the browser, run it on Sparrow, and see what the compiler says. Diagnostics, formatting, tokens, AST, IR and Sparrow assembly, with hover and completion.">
   <title>Okkama Playground</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../styles.css">
@@ -38,7 +38,7 @@
     <div class="pg-bar">
       <div class="pg-heading">
         <p class="eyebrow"><span class="status-dot"></span>PLAYGROUND</p>
-        <h1>Check it. <span>Nothing runs.</span></h1>
+        <h1>Write it. <span>Run it.</span></h1>
       </div>
       <div class="pg-controls" role="toolbar" aria-label="Playground actions">
         <label class="pg-field pg-examples">
@@ -50,8 +50,9 @@
         <label class="pg-check" title="Check with the tests and fakes, as okkama run -t does">
           <input type="checkbox" id="tests"><span>Tests <code>-t</code></span>
         </label>
-        <button class="pg-button" type="button" id="format-button" aria-keyshortcuts="Shift+Alt+F" title="Format the buffer (Shift+Alt+F)">Format</button>
-        <button class="pg-button" type="button" id="share-button" title="Copy a link to this code">Share</button>
+        <button class="pg-button pg-run" type="button" id="run-button" aria-keyshortcuts="Control+Enter Meta+Enter" title="Run the program (Ctrl+Enter)" disabled><span class="pg-run-icon" aria-hidden="true">▶</span><span id="run-label">Run</span></button>
+        <button class="pg-button pg-button-quiet" type="button" id="format-button" aria-keyshortcuts="Shift+Alt+F" title="Format the buffer (Shift+Alt+F)">Format</button>
+        <button class="pg-button pg-button-quiet" type="button" id="share-button" title="Copy a link to this code">Share</button>
         <button class="pg-button pg-button-quiet" type="button" id="reset-button" title="Back to the sample program">Reset</button>
       </div>
       <p class="pg-status" id="status" role="status" aria-live="polite">
@@ -66,7 +67,7 @@
       <section class="pg-pane pg-editor-pane" aria-label="Editor">
         <div class="pg-pane-top">
           <span class="pg-file"><span class="file-dot"></span><span id="file-name">main.ok</span></span>
-          <span class="pg-keys" id="keys">Ctrl-Space complete · F12 definition · Esc Tab leaves the editor</span>
+          <span class="pg-keys" id="keys">Ctrl-Enter run · Ctrl-Space complete · F12 definition · Esc Tab leaves the editor</span>
         </div>
         <div class="pg-editor" id="editor"></div>
         <div class="pg-pane-bottom">
@@ -80,6 +81,7 @@
         <div class="pg-pane-top pg-tabs-row">
           <div class="pg-tabs" role="tablist" aria-label="Compiler output">
             <button class="pg-tab" type="button" role="tab" id="tab-problems" aria-controls="panel" aria-selected="true" tabindex="0" data-view="problems">Problems <span class="pg-badge" id="problems-count" hidden></span></button>
+            <button class="pg-tab" type="button" role="tab" id="tab-output" aria-controls="panel" aria-selected="false" tabindex="-1" data-view="output">Output</button>
             <button class="pg-tab" type="button" role="tab" id="tab-format" aria-controls="panel" aria-selected="false" tabindex="-1" data-view="format">Format</button>
             <button class="pg-tab" type="button" role="tab" id="tab-tokens" aria-controls="panel" aria-selected="false" tabindex="-1" data-view="tokens">Tokens</button>
             <button class="pg-tab" type="button" role="tab" id="tab-ast" aria-controls="panel" aria-selected="false" tabindex="-1" data-view="ast">AST</button>
@@ -104,8 +106,15 @@
             <label class="pg-field pg-inline"><span>Passes</span><select id="ir-passes"><option value="all">all</option><option value="none">none</option></select></label>
           </div>
           <div class="pg-option-set" data-for="spa" hidden><span class="pg-command">okkama build · sparrow --disassemble</span><span class="pg-note" id="spa-note"></span></div>
+          <div class="pg-option-set" data-for="output" hidden><span class="pg-command" id="command-output">okkama run main.ok</span><span class="pg-note" id="output-note"></span>
+            <button class="pg-button pg-small pg-button-quiet" type="button" id="stdin-toggle" aria-expanded="false" aria-controls="stdin-box">stdin</button>
+          </div>
           <div class="pg-option-set" data-for="expected" hidden><span class="pg-command" id="expected-command">okkama run</span><span class="pg-note" id="expected-note"></span></div>
           <button class="copy-button pg-copy" type="button" id="copy-output" aria-label="Copy this output"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="6" width="9" height="11" rx="2"></rect><path d="M12 6V3H3v11h4"></path></svg><span>Copy</span></button>
+        </div>
+        <div class="pg-stdin" id="stdin-box" hidden>
+          <label for="stdin">Standard input <span>the program reads it, then the end of input</span></label>
+          <textarea id="stdin" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Lines the program reads with Stdin().line()…"></textarea>
         </div>
         <div class="pg-panel" id="panel" role="tabpanel" aria-labelledby="tab-problems" tabindex="0" aria-live="off">
           <p class="pg-empty">Waiting for the compiler…</p>
@@ -114,7 +123,7 @@
     </div>
   </main>
 
-  <footer class="footer"><div class="shell footer-inner"><a class="brand" href="../" aria-label="Okkama, home"><span class="brand-mark" aria-hidden="true">0&lt;</span><span>okkama<span class="brand-dot">.</span></span></a><p>The compiler runs in your browser, in WebAssembly. Your code stays on this page.</p><div><a href="/man/">Reference</a><a href="https://github.com/Okkama-lang/okkama/issues" target="_blank" rel="noopener noreferrer">Report a problem ↗</a><a href="#main">Back to top ↑</a></div></div></footer>
+  <footer class="footer"><div class="shell footer-inner"><a class="brand" href="../" aria-label="Okkama, home"><span class="brand-mark" aria-hidden="true">0&lt;</span><span>okkama<span class="brand-dot">.</span></span></a><p>The compiler and Sparrow run in your browser, in WebAssembly. Your code stays on this page.</p><div><a href="/man/">Reference</a><a href="https://github.com/Okkama-lang/okkama/issues" target="_blank" rel="noopener noreferrer">Report a problem ↗</a><a href="#main">Back to top ↑</a></div></div></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <noscript><p class="pg-noscript">The playground needs JavaScript and WebAssembly.</p></noscript>
 </body>

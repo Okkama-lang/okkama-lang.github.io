@@ -2,9 +2,12 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const ast: (a: number, b: number) => [number, number];
+export const build: (a: number, b: number) => [number, number];
+export const builtSpb: () => [number, number];
 export const check: (a: number, b: number) => [number, number];
 export const complete: (a: number, b: number) => [number, number];
 export const definition: (a: number, b: number) => [number, number];
+export const failureText: (a: number, b: number) => [number, number];
 export const fmt: (a: number, b: number) => [number, number];
 export const hover: (a: number, b: number) => [number, number];
 export const ir: (a: number, b: number) => [number, number];

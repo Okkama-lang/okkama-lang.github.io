@@ -2,12 +2,12 @@
 // The page sends {type: 'init', module} once, then {id, fn, request}; the answer is {id, response} or, when
 // the call trapped (a compiler panic is a wasm `unreachable`), {id, trap}: the panic's message and location, which
 // the trapped instance still holds (`lastPanic`, #1118), and the trap. A trapped instance is not used again: the
-// page ends this worker and starts a fresh one from the same compiled module.
+// page ends this worker and starts a fresh one from the same compiled module. `build` answers with the SPB too.
 
 import * as okkama from './pkg/okkama_wasm.js';
 
-const CALLS = new Set(['check', 'fmt', 'tokens', 'ast', 'ir', 'spa', 'hover', 'complete', 'definition', 'signature',
-  'setFiles']);
+const CALLS = new Set(['check', 'fmt', 'tokens', 'ast', 'ir', 'spa', 'build', 'failureText', 'hover', 'complete',
+  'definition', 'signature', 'setFiles']);
 let broken = null;
 
 self.onmessage = ({ data }) => {
@@ -33,7 +33,11 @@ self.onmessage = ({ data }) => {
     // `__trap` stands for a compiler panic, so the page's restart can be tested.
     if (fn === '__trap') throw new WebAssembly.RuntimeError('unreachable');
     const response = JSON.parse(okkama[fn](JSON.stringify(request)));
-    self.postMessage({ id, response });
+    if (fn === 'build' && response.ok) {
+      // The SPB the build made, for a run in its own worker (run-worker.js).
+      const spb = okkama.builtSpb();
+      self.postMessage({ id, response, spb }, [spb.buffer]);
+    } else self.postMessage({ id, response });
   } catch (error) {
     const trap = `${error && error.name || 'Error'}: ${error && error.message || error}`;
     const found = panic();

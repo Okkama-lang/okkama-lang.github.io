@@ -137,6 +137,27 @@ button.pg-diagnostic-head:hover .pg-location{text-decoration:underline}
 .pg-trap p{color:var(--muted)}
 .pg-link{color:var(--pg-accent);border-bottom:1px solid currentColor}
 
+/* Running: the Run button, standard input, the program's output. */
+.pg-run{display:inline-flex;align-items:center;gap:8px;min-width:84px;justify-content:center}
+.pg-run-icon{font-size:10px;line-height:1}
+.pg-run.pg-running{background:var(--panel-light);color:var(--text);border:1px solid var(--yellow)}
+.pg-run.pg-running:hover:not(:disabled){background:var(--panel-light)}
+.pg-stdin{display:flex;flex-direction:column;gap:6px;padding:10px 16px 12px;border-bottom:1px solid var(--line)}
+.pg-stdin[hidden]{display:none}
+.pg-stdin label{font-family:var(--mono);font-size:11px;color:var(--text)}
+.pg-stdin label span{color:var(--muted);margin-left:8px}
+.pg-stdin textarea{font-family:var(--mono);font-size:12px;line-height:1.5;color:var(--text);background:var(--pg-input);border:1px solid var(--line);border-radius:6px;padding:8px 10px;resize:vertical;min-height:58px;max-height:40vh}
+.pg-console{white-space:pre-wrap;word-break:break-word;min-height:1.6em}
+.pg-stderr{color:var(--pg-error)}
+.pg-exit-failed{color:var(--pg-error)}
+.pg-refused{border:1px solid var(--pg-warning);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;display:flex;flex-direction:column;gap:6px}
+.pg-refused strong{color:var(--pg-warning)}
+.pg-refused p{color:var(--muted)}
+.pg-refused ul{margin:0;padding-left:18px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.pg-trap-line{color:var(--pg-error);font-size:13px;margin-top:8px}
+.pg-empty p+p{margin-top:8px}
+.pg-muted-small{font-size:12px;color:var(--subtle)}
+
 /* Hover, signature help and completion documentation. */
 .pg-hover,.pg-signature{max-width:min(520px,90vw);padding:8px 12px;font-size:13px;line-height:1.5}
 .pg-hover{max-height:320px;overflow:auto}

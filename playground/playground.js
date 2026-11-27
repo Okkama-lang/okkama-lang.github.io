@@ -13,7 +13,7 @@ import {
   highlightSelectionMatches, tags,
 } from './vendor/codemirror.min.js';
 import { okkamaStream, highlightInto, TOKENS } from './okkama-lang.js';
-import { Engine } from './engine.js';
+import { Engine, Runtime } from './engine.js';
 
 const SAMPLE = `module playground v1.0.0;
 
@@ -535,6 +535,7 @@ const extensions = [
   rectangularSelection(), crosshairCursor(), highlightActiveLine(), highlightSelectionMatches(), lintGutter(),
   hover, signatureField, signatureUpdates, definitionClick,
   keymap.of([
+    { key: 'Mod-Enter', run: () => { startRun(); return true; } },
     { key: 'F12', run: definitionKey },
     { key: 'Mod-b', run: definitionKey },
     { key: 'Mod-Shift-Space', run: view => { requestSignature(view); return true; } },
@@ -585,6 +586,7 @@ const VIEWS = {
     },
   },
   spa: { fn: 'spa', request: () => request({ tests: tests() }) },
+  output: null,
   expected: null,
 };
 
@@ -598,7 +600,7 @@ async function runNow() {
   if (!compilerReady) return;
   await run('problems');
   if (state.view !== 'problems' && VIEWS[state.view]) await run(state.view);
-  else if (state.view === 'expected') render();
+  else if (state.view === 'expected' || state.view === 'output') render();
 }
 
 async function run(view) {
@@ -688,6 +690,7 @@ function render() {
   const view = state.view;
   panel.textContent = '';
   if (view === 'expected') return renderExpected();
+  if (view === 'output') return renderOutput();
   const answer = state.results[view];
   if (!answer) {
     panel.append(element('p', 'pg-empty', compilerReady ? 'Working…' : 'Waiting for the compiler…'));
@@ -781,9 +784,21 @@ function renderExpected() {
   $('expected-command').textContent = example.rejected
     ? `okkama run ${example.name}.ok, stderr`
     : `okkama run${example.tests ? ' -t' : ''} ${example.name}.ok`;
-  let note = example.rejected
-    ? 'The diagnostic the Bible shows.'
-    : 'What the program prints, from the Bible. The playground does not run programs yet.';
+  let note;
+  if (example.rejected) note = 'The diagnostic the Bible shows.';
+  else if (example.runs) {
+    note = 'What the program prints, from the Bible (and “exit N” for a status other than 0).';
+    const ran = run$.last;
+    if (ran && ran.source === example.source && ran.path === `${example.name}.ok`) {
+      const trimmed = ran.stdout.replace(/\n+$/, '');
+      const lines = trimmed ? trimmed.split('\n') : [];
+      if (ran.exit !== 0) lines.push(`exit ${ran.exit}`);
+      note += lines.join('\n') === example.expected.replace(/\n+$/, '')
+        ? ' ✓ The playground’s run printed the same.'
+        : ' The playground’s run printed something else: see Output.';
+    } else note += ' Run it to compare.';
+  } else if (example.tests) note = 'A test suite’s report, from the Bible. The playground does not run tests yet.';
+  else note = 'What the program prints, from the Bible. It needs what the playground does not offer (files, processes or the environment), so it runs only with okkama.';
   const checked = state.results.problems;
   if (example.rejected && checked && !checked.trap) {
     const said = (checked.stderr || '').trimEnd();
@@ -846,6 +861,7 @@ $('tests').addEventListener('change', () => {
 
 $('copy-output').addEventListener('click', () => {
   if (state.view === 'expected') return copyText(state.example ? state.example.expected || '' : '');
+  if (state.view === 'output') return run$.console ? copyText(run$.box.innerText) : notify('Nothing to copy yet.');
   const answer = state.results[state.view];
   if (!answer || answer.trap) return notify('Nothing to copy yet.');
   return copyText(answer.ok && state.view !== 'problems' ? answer.stdout : answer.stderr || answer.stdout || '');
@@ -879,6 +895,294 @@ $('apply-format').addEventListener('click', () => {
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: answer.stdout }, userEvent: 'input.format' });
   editor.focus();
 });
+
+// ---------------------------------------------------------------- running programs
+
+// `okkama run` in the page: okkama-wasm builds the SPB (the CLI's diagnostics and warnings), sparrow-wasm runs it in
+// a worker of its own under the playground's profile (steps, memory and output budgets; files, sockets, processes and
+// the environment refused) with the stdin field as standard input, and the page shows the output by its moments on
+// the program's clock: a sleep is not waited for while the program runs, the page replays it. A failure is drawn
+// with its place and stack in the sources, as `okkama run` prints it (okkama-wasm's failureText).
+const runtime = new Runtime();
+let runtimeReady = false;
+const STDIN_KEY = 'okkama-playground-stdin';
+const run$ = {
+  phase: 'idle', // idle | loading | building | running | replaying
+  handle: null,
+  timer: null,
+  box: null, // the Output panel's content for the last run
+  console: null,
+  last: null, // {source, path, stdout, exit} of the last finished run, for Expected
+  skip: null,
+};
+
+runtime.addEventListener('progress', ({ detail }) => {
+  if (run$.phase !== 'loading') return;
+  const percent = detail.total ? Math.min(100, Math.round(detail.loaded / detail.total * 100)) : null;
+  $('output-note').textContent = percent === null ? 'Loading Sparrow…' : `Loading Sparrow… ${percent}%`;
+});
+
+function loadRuntime() {
+  return runtime.load().then(() => {
+    runtimeReady = true;
+    if (compilerReady) setStatus('ready', `Ready · okkama ${engine.version.version} · Sparrow`);
+    return runtime;
+  });
+}
+
+function setRunPhase(phase) {
+  run$.phase = phase;
+  const button = $('run-button');
+  const label = { idle: 'Run', loading: 'Stop', building: 'Stop', running: 'Stop', replaying: 'Skip' }[phase];
+  $('run-label').textContent = label;
+  button.querySelector('.pg-run-icon').textContent = phase === 'idle' ? '▶' : phase === 'replaying' ? '⏭' : '■';
+  button.classList.toggle('pg-running', phase !== 'idle');
+  button.title = phase === 'idle' ? 'Run the program (Ctrl+Enter)'
+    : phase === 'replaying' ? 'Show the rest of the output now' : 'Stop the program';
+  button.setAttribute('aria-label', phase === 'idle' ? 'Run the program' : phase === 'replaying' ? 'Skip the waits' : 'Stop the program');
+}
+
+/** Strip terminal escape sequences (CSI) from program output: the page is not a terminal. */
+const ESCAPES = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b[@-Z\\-_]/g;
+
+function appendOutput(stream, text) {
+  const pre = run$.console;
+  const clean = text.replace(ESCAPES, '');
+  if (!clean) return;
+  const stick = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 8 && panel.scrollHeight - panel.scrollTop - panel.clientHeight < 24;
+  const last = pre.lastChild;
+  if (last && last.dataset.stream === stream) last.textContent += clean;
+  else {
+    const span = element('span', stream === 'stderr' ? 'pg-stderr' : 'pg-stdout', clean);
+    span.dataset.stream = stream;
+    pre.append(span);
+  }
+  if (stick && run$.box.isConnected) panel.scrollTop = panel.scrollHeight;
+}
+
+function runNote(text) {
+  $('output-note').textContent = text;
+}
+
+function newRunBox() {
+  const box = element('div', 'pg-run-out');
+  run$.console = element('pre', 'pg-out pg-console');
+  run$.console.setAttribute('aria-label', 'Program output');
+  box.append(run$.console);
+  run$.box = box;
+  if (state.view === 'output') render();
+  return box;
+}
+
+function finishRun(lines) {
+  for (const line of lines) run$.box.append(line);
+  setRunPhase('idle');
+  if (state.view === 'output' || state.view === 'expected') render();
+}
+
+const seconds = ms => (ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)} s` : `${Math.round(ms)} ms`);
+
+async function startRun() {
+  if (run$.phase === 'replaying') return run$.skip && run$.skip();
+  if (run$.phase !== 'idle') return stopRun();
+  if (!compilerReady) return undefined;
+  const source = editor.state.doc.toString();
+  const path = state.path;
+  const stdin = $('stdin').value;
+  $('command-output').textContent = `okkama run ${path}`;
+  selectView('output');
+  newRunBox();
+  if (!runtimeReady) {
+    setRunPhase('loading');
+    runNote('Loading Sparrow…');
+    try {
+      await loadRuntime();
+    } catch (error) {
+      setRunPhase('idle');
+      runNote('');
+      finishRun([element('p', 'pg-trap-line', `Sparrow did not load: ${error.message || error}. Check the connection and try again.`)]);
+      return undefined;
+    }
+    if (run$.phase !== 'loading') return undefined; // stopped while loading
+  }
+  setRunPhase('building');
+  runNote('Building…');
+  let built;
+  try {
+    built = await engine.call('build', { source, path });
+  } catch (error) {
+    runNote('');
+    finishRun([trapBox('The compiler stopped while building this program and was restarted.', error.message || String(error))]);
+    return undefined;
+  }
+  if (run$.phase !== 'building') return undefined;
+  if (!built.ok) {
+    // As `okkama run`: the diagnostics on stderr and status 1.
+    runNote('The program does not build.');
+    finishRun([diagnosticsList(built), element('p', 'pg-exit', `exit ${built.code}`)]);
+    return undefined;
+  }
+  if (built.stderr) appendOutput('stderr', built.stderr);
+  setRunPhase('running');
+  runNote('Running…');
+  const started = performance.now();
+  run$.handle = runtime.run(built.spb, {
+    stdin,
+    onRequirements: needs => {
+      if (needs.refused && needs.refused.length) run$.box.prepend(refusedBox(needs.refused));
+      if (needs.files && needs.files.length) runNote('Running… (loading the CLDR tables it reads)');
+    },
+  });
+  const outcome = await run$.handle.done;
+  run$.handle = null;
+  if (outcome.interrupted === 'stop') {
+    runNote(`Stopped after ${seconds(performance.now() - started)}.`);
+    finishRun([element('p', 'pg-exit', 'stopped')]);
+    return undefined;
+  }
+  if (outcome.interrupted === 'watchdog') {
+    // The runtime's own words for an interrupted run (`okkama run --timeout`).
+    appendOutput('stderr', 'Execution interrupted\n');
+    runNote(`The playground stopped it after ${seconds(runtime.watchdogMs)} of computing.`);
+    finishRun([]);
+    return undefined;
+  }
+  if (outcome.trap) {
+    runNote('');
+    finishRun([trapBox('Sparrow stopped on this program (a runtime trap). This is a bug in the runtime, not in your program; please report it with the code.', outcome.trap)]);
+    return undefined;
+  }
+  if (outcome.error) {
+    runNote('');
+    finishRun([element('p', 'pg-trap-line', outcome.error)]);
+    return undefined;
+  }
+  const result = outcome.result;
+  let failure = '';
+  if (result.report) {
+    failure = result.report;
+    try {
+      const drawn = await engine.call('failureText', { report: result.report, uncaught: result.uncaught });
+      if (drawn.ok && typeof drawn.text === 'string') failure = drawn.text;
+    } catch { /* the report without its place */ }
+  }
+  replayOutput(result, outcome.elapsed, () => {
+    if (failure) appendOutput('stderr', failure);
+    const stdout = result.output.filter(piece => piece.stream === 'stdout').map(piece => piece.text).join('');
+    run$.last = { source, path, stdout, exit: result.exit };
+    const clock = result.output.length ? result.output[result.output.length - 1].t / 1e6 : 0;
+    const timing = clock > outcome.elapsed + 50 ? `${seconds(clock)} on the program's clock, ${seconds(outcome.elapsed)} to compute` : `${seconds(outcome.elapsed)}`;
+    runNote(`Ran in ${timing}.${tests() ? ' Tests do not run in the playground yet: this was main.' : ''}`);
+    finishRun([element('p', `pg-exit${result.exit ? ' pg-exit-failed' : ''}`, `exit ${result.exit}`)]);
+  });
+  return undefined;
+}
+
+/** Show `result.output` by its marks: what the program wrote at t appears t after the run began, not sooner. */
+function replayOutput(result, elapsed, done) {
+  const pieces = result.output;
+  const base = performance.now() - elapsed;
+  let at = 0;
+  let over = false;
+  const end = () => {
+    if (over) return;
+    over = true;
+    clearTimeout(run$.timer);
+    run$.skip = null;
+    done();
+  };
+  const step = () => {
+    const now = performance.now() - base;
+    while (at < pieces.length && pieces[at].t / 1e6 <= now) {
+      appendOutput(pieces[at].stream, pieces[at].text);
+      at++;
+    }
+    if (at >= pieces.length) return end();
+    run$.timer = setTimeout(step, Math.max(0, pieces[at].t / 1e6 - (performance.now() - base)));
+    return undefined;
+  };
+  run$.skip = () => {
+    while (at < pieces.length) {
+      appendOutput(pieces[at].stream, pieces[at].text);
+      at++;
+    }
+    end();
+  };
+  step();
+  if (!over) {
+    setRunPhase('replaying');
+    runNote('Replaying the output on the program’s clock…');
+  }
+}
+
+function stopRun() {
+  if (run$.handle) run$.handle.stop();
+  else if (run$.phase === 'loading' || run$.phase === 'building') {
+    setRunPhase('idle');
+    runNote('Stopped.');
+  }
+}
+
+function refusedBox(refused) {
+  const box = element('div', 'pg-refused');
+  box.setAttribute('role', 'note');
+  box.append(element('strong', '', 'This program uses what the playground does not offer.'));
+  box.append(element('p', '', 'Files, sockets, processes, the environment and the terminal stay outside the browser. The program runs until it reaches one of these and stops there with “not available in the playground”; run it with okkama on your machine for the rest.'));
+  const list = element('ul');
+  for (const symbol of refused.slice(0, 8)) list.append(element('li', '', symbol));
+  if (refused.length > 8) list.append(element('li', '', `and ${refused.length - 8} more`));
+  box.append(list);
+  return box;
+}
+
+function trapBox(title, detail) {
+  const box = element('div', 'pg-trap');
+  box.append(element('strong', '', title));
+  box.append(element('pre', 'pg-out pg-muted', detail));
+  const link = element('a', 'pg-link', 'Report it on GitHub ↗');
+  link.href = 'https://github.com/Okkama-lang/okkama/issues/new';
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  box.append(link);
+  return box;
+}
+
+function renderOutput() {
+  $('command-output').textContent = `okkama run ${state.path}`;
+  if (run$.box) {
+    panel.append(run$.box);
+    return;
+  }
+  const empty = element('div', 'pg-empty');
+  empty.append(element('p', '', 'Press Run (Ctrl+Enter) to build the program and run it on Sparrow, in your browser.'));
+  empty.append(element('p', 'pg-muted-small', 'Files, sockets, processes and the environment are not available here; a program gets 5·10⁷ steps, 256 MiB and 1 MiB of output, and 15 s of computing.'));
+  panel.append(empty);
+}
+
+$('run-button').addEventListener('click', () => startRun());
+{
+  const stdin = $('stdin');
+  stdin.value = storage.get(STDIN_KEY) || '';
+  const toggle = $('stdin-toggle');
+  const mark = () => { toggle.textContent = stdin.value ? 'stdin •' : 'stdin'; };
+  mark();
+  toggle.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') !== 'true';
+    toggle.setAttribute('aria-expanded', String(open));
+    $('stdin-box').hidden = !open;
+    if (open) stdin.focus();
+  });
+  stdin.addEventListener('input', () => {
+    storage.set(STDIN_KEY, stdin.value);
+    mark();
+  });
+  stdin.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      startRun();
+    }
+  });
+}
 
 // ---------------------------------------------------------------- examples, links, drafts
 
@@ -918,9 +1222,10 @@ function openExample(name, { updateUrl = true } = {}) {
   $('example').value = example.name;
   $('tab-expected').hidden = example.expected === null;
   const chapter = examples.chapters[example.chapter];
-  $('example-hint').textContent = chapter
+  const runs = example.runs ? ' It runs here: press Run.' : example.rejected ? ' The compiler rejects it on purpose.' : example.tests ? ' A test suite: the playground checks it, tests do not run here yet.' : ' It needs files, processes or the environment, so it does not run here.';
+  $('example-hint').textContent = (chapter
     ? `From the Okkama Bible, chapter ${Number(example.chapter)}: ${chapter}.`
-    : 'From the Okkama Bible.';
+    : 'From the Okkama Bible.') + runs;
   if (updateUrl) setUrl({ example: example.name });
   if (state.view === 'expected' && example.expected === null) selectView('problems');
   else render();
@@ -941,7 +1246,7 @@ function fillExamples() {
     }
     const option = document.createElement('option');
     option.value = example.name;
-    option.textContent = example.name.replace(/^\d\d-/, '') + (example.rejected ? ' (rejected)' : example.tests ? ' (tests)' : '');
+    option.textContent = example.name.replace(/^\d\d-/, '') + (example.rejected ? ' (rejected)' : example.tests ? ' (tests)' : example.runs ? ' · runs' : '');
     groups.get(key).append(option);
   }
 }
@@ -1046,6 +1351,9 @@ engine.load().then(async version => {
   compilerReady = true;
   $('progress-bar').style.width = '100%';
   setStatus('ready', `Ready · okkama ${version.version}`);
+  $('run-button').disabled = false;
+  // Sparrow comes next, in the background, so a run starts at once and the page works offline afterwards.
+  loadRuntime().catch(() => { /* fetched again on Run */ });
   $('version-line').textContent = `okkama ${version.version} · ${version.stdModules} std modules`;
   state.results = {};
   render();
@@ -1060,7 +1368,8 @@ engine.load().then(async version => {
 
 // For tests and the curious: the page's parts.
 window.okkamaPlayground = {
-  engine, editor, state, openExample, selectView, run,
+  engine, runtime, editor, state, openExample, selectView, run, startRun,
+  get running() { return run$.phase; },
   get ready() { return compilerReady; },
   get lastError() { return lastError; },
 };
