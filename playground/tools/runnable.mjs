@@ -1,10 +1,12 @@
 // Mark the Bible's examples that run in the playground: node playground/tools/runnable.mjs
 //
 // Builds every example of playground/examples.json on the compiler (pkg/okkama_wasm) and asks the runtime
-// (pkg/sparrow_wasm) what it needs. An example runs when the playground's profile refuses none of its natives
-// and it is not a test suite (`runs`; otherwise `refused` names what it lacks); it is then run with empty standard input, as the Bible's build.py runs
-// it, and what it shows (standard output, then "exit N" for a status other than 0) is compared with the Bible's
-// expected output (`matches`). Rejected examples and test suites (NAME-tests) do not run. Prints the counts and every mismatch.
+// (pkg/sparrow_wasm) what it needs. An example runs when the playground's profile refuses none of the natives it
+// can reach (`runs`; otherwise `refused` names them). It is then run with empty standard input, as the Bible's
+// build.py runs it (a test suite, NAME-tests, runs its tests as `okkama run -t`), and what it shows (standard
+// output, then "exit N" for a status other than 0) is compared with the Bible's expected output (`matches`),
+// without the Bible's doctest lines: the playground does not run documentation examples. Rejected examples do not
+// run. Prints the counts and every mismatch.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -30,12 +32,6 @@ for (const example of index.examples) {
     counts.rejected++;
     continue;
   }
-  if (example.tests) {
-    // A test suite's report (okkama run -t) is not the playground's yet: its runs are programs.
-    example.runs = false;
-    counts.tests++;
-    continue;
-  }
   const path = `${example.name}.ok`;
   const built = JSON.parse(compiler.build(JSON.stringify({ source: example.source, path, tests: example.tests })));
   if (!built.ok) {
@@ -57,13 +53,17 @@ for (const example of index.examples) {
     if (given.error) throw new Error(`${name}: ${given.error}`);
     provided.add(name);
   }
-  const ran = JSON.parse(runtime.run(spb, JSON.stringify({ stdin: '' })));
+  // A test suite (NAME-tests) runs its tests, as `okkama run -t` does (#1127).
+  const ran = JSON.parse((example.tests ? runtime.test : runtime.run)(spb, JSON.stringify({ stdin: '' })));
+  if (example.tests) counts.tests++;
   const stdout = ran.output.filter(piece => piece.stream === 'stdout').map(piece => piece.text).join('');
   // As build.py compares: the output without its last newlines, by lines.
   const trimmed = stdout.replace(/\n+$/, '');
   const lines = trimmed ? trimmed.split('\n') : [];
   if (ran.exit !== 0) lines.push(`exit ${ran.exit}`);
-  const expected = (example.expected || '').replace(/\n+$/, '');
+  // The playground does not run documentation examples: the Bible's doctest lines are left out.
+  const expected = (example.expected || '').replace(/\n+$/, '').split('\n')
+    .filter(line => !/^(not )?ok - doctest /.test(line)).join('\n');
   example.runs = true;
   example.matches = lines.join('\n') === expected;
   counts.runs++;
@@ -72,5 +72,5 @@ for (const example of index.examples) {
 }
 
 writeFileSync(`${root}examples.json`, `${JSON.stringify(index)}\n`);
-console.log(`examples: ${counts.runs} run (${counts.matches} as the Bible prints), ${counts.refused} need what the playground lacks, ${counts.tests} test suites, ${counts.rejected} rejected`);
+console.log(`examples: ${counts.runs} run (${counts.matches} as the Bible prints), ${counts.refused} need what the playground lacks, ${counts.rejected} rejected; ${counts.tests} of the runs are test suites (okkama run -t)`);
 for (const line of mismatches) console.log(`  ${line}`);

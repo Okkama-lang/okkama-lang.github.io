@@ -787,17 +787,21 @@ function renderExpected() {
   let note;
   if (example.rejected) note = 'The diagnostic the Bible shows.';
   else if (example.runs) {
-    note = 'What the program prints, from the Bible (and “exit N” for a status other than 0).';
+    note = example.tests
+      ? 'The test report, from the Bible (and “exit N” for a status other than 0).'
+      : 'What the program prints, from the Bible (and “exit N” for a status other than 0).';
     const ran = run$.last;
-    if (ran && ran.source === example.source && ran.path === `${example.name}.ok`) {
+    if (ran && ran.source === example.source && ran.path === `${example.name}.ok` && ran.mode === (example.tests ? 'test' : 'run')) {
       const trimmed = ran.stdout.replace(/\n+$/, '');
       const lines = trimmed ? trimmed.split('\n') : [];
       if (ran.exit !== 0) lines.push(`exit ${ran.exit}`);
-      note += lines.join('\n') === example.expected.replace(/\n+$/, '')
-        ? ' ✓ The playground’s run printed the same.'
-        : ' The playground’s run printed something else: see Output.';
+      // The playground does not run documentation examples: their lines of the Bible's report are not compared.
+      const shown = example.expected.replace(/\n+$/, '').split('\n').filter(line => !/^(not )?ok - doctest /.test(line));
+      note += lines.join('\n') === shown.join('\n')
+        ? ` ✓ The playground’s ${example.tests ? 'test run reported' : 'run printed'} the same${shown.length < example.expected.replace(/\n+$/, '').split('\n').length ? ' (doctests aside)' : ''}.`
+        : ` The playground’s ${example.tests ? 'test run' : 'run'} printed something else: see Output.`;
     } else note += ' Run it to compare.';
-  } else if (example.tests) note = 'A test suite’s report, from the Bible. The playground does not run tests yet.';
+  } else if (example.tests) note = 'A test suite’s report, from the Bible. It needs what the playground does not offer, so it runs only with okkama.';
   else note = 'What the program prints, from the Bible. It needs what the playground does not offer (files, processes or the environment), so it runs only with okkama.';
   const checked = state.results.problems;
   if (example.rejected && checked && !checked.trap) {
@@ -1057,7 +1061,9 @@ async function startRun() {
   const source = editor.state.doc.toString();
   const path = state.path;
   const stdin = $('stdin').value;
-  $('command-output').textContent = `okkama run ${path}`;
+  // With the Tests box: `okkama run -t`, the module's tests and their report (#1127).
+  const mode = tests() ? 'test' : 'run';
+  $('command-output').textContent = `okkama run${mode === 'test' ? ' -t' : ''} ${path}`;
   selectView('output');
   resetShow();
   newRunBox();
@@ -1078,7 +1084,7 @@ async function startRun() {
   runNote('Building…');
   let built;
   try {
-    built = await engine.call('build', { source, path });
+    built = await engine.call('build', { source, path, tests: mode === 'test' });
   } catch (error) {
     runNote('');
     finishRun([trapBox('The compiler stopped while building this program and was restarted.', error.message || String(error))]);
@@ -1096,6 +1102,7 @@ async function startRun() {
   runNote('Running…');
   let started = performance.now();
   run$.handle = runtime.run(built.spb, {
+    mode,
     stdin,
     onRequirements: needs => {
       const box = requirementsBox(needs);
@@ -1132,7 +1139,8 @@ async function startRun() {
   const result = outcome.result;
   if (result.output && result.output.length) receive(result.output); // a runtime without the sink
   let failure = '';
-  if (result.report) {
+  if (result.report && mode === 'test') failure = result.report; // exit 4: the tests could not run
+  else if (result.report) {
     failure = result.report;
     try {
       const drawn = await engine.call('failureText', { report: result.report, uncaught: result.uncaught });
@@ -1142,11 +1150,13 @@ async function startRun() {
   const finish = () => {
     run$.skip = null;
     if (failure) appendOutput('stderr', failure);
-    run$.last = { source, path, stdout: show.stdout, exit: result.exit };
+    run$.last = { source, path, mode, stdout: show.stdout, exit: result.exit };
     const timing = show.clock > outcome.elapsed + 50
       ? `${seconds(show.clock)} on the program's clock, ${seconds(outcome.elapsed)} to compute`
       : seconds(outcome.elapsed);
-    runNote(`Ran in ${timing}.${tests() ? ' Tests do not run in the playground yet: this was main.' : ''}`);
+    runNote(mode === 'test'
+      ? `Tested in ${timing}; doctests do not run here.`
+      : `Ran in ${timing}.`);
     finishRun([element('p', `pg-exit${result.exit ? ' pg-exit-failed' : ''}`, `exit ${result.exit}`)]);
   };
   if (!show.queue.length && !show.frame && !show.timer) {
@@ -1215,7 +1225,7 @@ function trapBox(title, detail) {
 }
 
 function renderOutput() {
-  $('command-output').textContent = `okkama run ${state.path}`;
+  if (!run$.box) $('command-output').textContent = `okkama run${tests() ? ' -t' : ''} ${state.path}`;
   if (run$.box) {
     panel.append(run$.box);
     return;
@@ -1294,7 +1304,10 @@ function openExample(name, { updateUrl = true } = {}) {
   $('example').value = example.name;
   $('tab-expected').hidden = example.expected === null;
   const chapter = examples.chapters[example.chapter];
-  const runs = example.runs ? ' It runs here: press Run.' : example.rejected ? ' The compiler rejects it on purpose.' : example.tests ? ' A test suite: the playground checks it, tests do not run here yet.' : ' It needs files, processes or the environment, so it does not run here.';
+  const runs = example.runs
+    ? (example.tests ? ' A test suite: Run runs its tests (okkama run -t).' : ' It runs here: press Run.')
+    : example.rejected ? ' The compiler rejects it on purpose.'
+      : ' It needs files, processes or the environment, so it does not run here.';
   $('example-hint').textContent = (chapter
     ? `From the Okkama Bible, chapter ${Number(example.chapter)}: ${chapter}.`
     : 'From the Okkama Bible.') + runs;
@@ -1318,7 +1331,7 @@ function fillExamples() {
     }
     const option = document.createElement('option');
     option.value = example.name;
-    option.textContent = example.name.replace(/^\d\d-/, '') + (example.rejected ? ' (rejected)' : example.tests ? ' (tests)' : example.runs ? ' · runs' : '');
+    option.textContent = example.name.replace(/^\d\d-/, '') + (example.rejected ? ' (rejected)' : example.runs ? (example.tests ? ' · runs tests' : ' · runs') : example.tests ? ' (tests)' : '');
     groups.get(key).append(option);
   }
 }

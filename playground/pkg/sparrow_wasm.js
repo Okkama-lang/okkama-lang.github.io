@@ -97,6 +97,37 @@ export function run(spb, request, sink) {
 }
 
 /**
+ * The tests of an SPB built with tests (#1127), as `run`: with `sink` the report streams to it.
+ * @param {Uint8Array | number[]} spb
+ * @param {string} request
+ * @param {any | null} [sink]
+ * @returns {string}
+ */
+export function test(spb, request, sink) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        let ptr0, len0, ptr1, len1;
+        try {
+            ptr0 = passArray8ToWasm0(spb, wasm.__wbindgen_malloc);
+            len0 = WASM_VECTOR_LEN;
+            ptr1 = passStringToWasm0(request, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            len1 = WASM_VECTOR_LEN;
+        } catch (e) {
+            if (ptr1) { wasm.__wbindgen_free(ptr1, len1 * 1, 1); }
+            if (ptr0) { wasm.__wbindgen_free(ptr0, len0 * 1, 1); }
+            throw e;
+        }
+        const ret = wasm.test(ptr0, len0, ptr1, len1, isLikeNone(sink) ? 0 : addToExternrefTable0(sink));
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
  * @returns {string}
  */
 export function version() {

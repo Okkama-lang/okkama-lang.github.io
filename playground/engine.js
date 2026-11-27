@@ -256,12 +256,12 @@ export class Runtime extends EventTarget {
   }
 
   /**
-   * Run `spb` with `stdin` in a worker of its own. `onRequirements({refused, declared, files})` hears what the
+   * Run `spb` with `stdin` in a worker of its own (`mode` 'test': its tests, as `okkama run -t`). `onRequirements({refused, declared, files})` hears what the
    * program needs before it runs, `onStart()` when it starts, `onChunks([{stream, text, t}])` its writes as they
    * come. Returns {done, stop}: `done` resolves to {result, elapsed, requirements} | {interrupted: 'stop' |
    * 'watchdog'} | {trap} | {error}; `stop()` ends the run (what it printed has already arrived).
    */
-  run(spb, { stdin = '', onRequirements = () => {}, onStart = () => {}, onChunks = () => {} } = {}) {
+  run(spb, { mode = 'run', stdin = '', onRequirements = () => {}, onStart = () => {}, onChunks = () => {} } = {}) {
     const { worker, ready } = this.spare || this.spawn();
     this.spare = null;
     let finish;
@@ -291,7 +291,7 @@ export class Runtime extends EventTarget {
         if (over) return undefined;
         timer = setTimeout(() => end({ interrupted: 'watchdog' }), this.watchdogMs);
         onStart();
-        worker.postMessage({ type: 'run', spb, stdin, files });
+        worker.postMessage({ type: 'run', mode, spb, stdin, files });
       } else if (data.type === 'chunks') {
         if (!over) onChunks(data.chunks);
       } else if (data.type === 'done') {
