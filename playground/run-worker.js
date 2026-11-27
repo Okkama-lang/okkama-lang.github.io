@@ -9,8 +9,9 @@
 //   any failure of the instance                        worker → {type: 'trap', message}
 //
 // Every write reaches the page while the program runs (sparrow-wasm's output sink, #1134): a chunk {stream, text, t},
-// `t` in nanoseconds on the run's virtual timeline (a sleep moves it without waiting). The worker posts each as it
-// comes (the page batches its drawing per frame), so a run the page stops keeps what it printed. `result` is
+// `t` in nanoseconds on the run's virtual timeline (a sleep moves it without waiting). sparrow-wasm joins a stream's
+// writes within 16 ms of the timeline (and 64 KiB) into one chunk, marked by its first write, and hands it over at
+// the next budget poll (#1136); the worker posts each chunk as it comes, so a run the page stops keeps what it printed. `result` is
 // sparrow-wasm's run: {exit, output: [] (streamed), report, uncaught}, or with mode 'test' its test (#1127): {exit:
 // 0 | 1 | 4, output: [], report: `okkama: …` with 4}; `elapsed` the real milliseconds the run took.
 
@@ -38,8 +39,7 @@ self.onmessage = ({ data }) => {
         const given = JSON.parse(sparrow.provide(file.name, file.bytes));
         if (given.error) throw new Error(`${file.name}: ${given.error}`);
       }
-      // Each write goes to the page at once: a run is one synchronous call, so a chunk held back for a batch would
-      // wait for the next write, which a program that prints and then computes (or is stopped) never makes.
+      // Each chunk goes to the page at once (sparrow-wasm has already batched the writes, #1136).
       const sink = text => self.postMessage({ type: 'chunks', chunks: [JSON.parse(text)] });
       const started = performance.now();
       // `okkama run -t`: the module's tests (an SPB built with tests), the report streamed a line at a time.

@@ -1119,9 +1119,12 @@ async function startRun() {
   const outcome = await run$.handle.done;
   run$.handle = null;
   if (outcome.interrupted) {
-    // What it printed stays; then the runtime's words for an interrupted run (`okkama run --timeout`).
+    // What it printed stays; then the runtime's words: `stopped` for the Stop button, `interrupted` for the
+    // watchdog (as `okkama run --timeout`).
     flushShow();
-    appendOutput('stderr', profile().interrupted || 'Execution interrupted\n');
+    appendOutput('stderr', outcome.interrupted === 'watchdog'
+      ? profile().interrupted || 'Execution interrupted\n'
+      : profile().stopped || 'Execution stopped\n');
     runNote(outcome.interrupted === 'watchdog'
       ? `The playground stopped it after ${seconds(runtime.watchdogMs)} of computing.`
       : `Stopped after ${seconds(performance.now() - started)}.`);
