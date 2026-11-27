@@ -145,18 +145,18 @@ export function version() {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
-        __wbg_call_04d4d7cdeff20ea1: function() { return handleError(function (arg0, arg1, arg2, arg3) {
+        __wbg_call_a22d4a1798018790: function() { return handleError(function (arg0, arg1, arg2, arg3) {
             arg0.call(arg1, getStringFromWasm0(arg2, arg3));
         }, arguments); },
         __wbg_getRandomValues_8b6f1f663e6f188d: function() { return handleError(function (arg0, arg1) {
             globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
         }, arguments); },
-        __wbg_now_8cb05f5244ec888a: function() {
-            const ret = Date.now();
+        __wbg_now_261c93b9b8fb6c6a: function() {
+            const ret = performance.now();
             return ret;
         },
-        __wbg_now_9e4e714dea1c050a: function() {
-            const ret = performance.now();
+        __wbg_now_e0ef53e20c9c3c06: function() {
+            const ret = Date.now();
             return ret;
         },
         __wbindgen_init_externref_table: function() {
