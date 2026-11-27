@@ -4,7 +4,7 @@ export const memory: WebAssembly.Memory;
 export const lastPanic: () => [number, number];
 export const provide: (a: number, b: number, c: number, d: number) => [number, number];
 export const requirements: (a: number, b: number) => [number, number];
-export const run: (a: number, b: number, c: number, d: number) => [number, number];
+export const run: (a: number, b: number, c: number, d: number, e: number) => [number, number];
 export const version: () => [number, number];
 export const __wbindgen_exn_store: (a: number) => void;
 export const __externref_table_alloc: () => number;

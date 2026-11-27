@@ -65,11 +65,14 @@ export function requirements(spb) {
 }
 
 /**
+ * With `sink`, every write goes to it while the program runs and the answer's `output` is empty; without it
+ * the output comes back in the answer.
  * @param {Uint8Array | number[]} spb
  * @param {string} request
+ * @param {any | null} [sink]
  * @returns {string}
  */
-export function run(spb, request) {
+export function run(spb, request, sink) {
     let deferred3_0;
     let deferred3_1;
     try {
@@ -84,7 +87,7 @@ export function run(spb, request) {
             if (ptr0) { wasm.__wbindgen_free(ptr0, len0 * 1, 1); }
             throw e;
         }
-        const ret = wasm.run(ptr0, len0, ptr1, len1);
+        const ret = wasm.run(ptr0, len0, ptr1, len1, isLikeNone(sink) ? 0 : addToExternrefTable0(sink));
         deferred3_0 = ret[0];
         deferred3_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
@@ -111,6 +114,9 @@ export function version() {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg_call_04d4d7cdeff20ea1: function() { return handleError(function (arg0, arg1, arg2, arg3) {
+            arg0.call(arg1, getStringFromWasm0(arg2, arg3));
+        }, arguments); },
         __wbg_getRandomValues_8b6f1f663e6f188d: function() { return handleError(function (arg0, arg1) {
             globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
         }, arguments); },
@@ -168,6 +174,10 @@ function handleError(f, args) {
         const idx = addToExternrefTable0(e);
         wasm.__wbindgen_exn_store(idx);
     }
+}
+
+function isLikeNone(x) {
+    return x === undefined || x === null;
 }
 
 function passArray8ToWasm0(arg, malloc) {

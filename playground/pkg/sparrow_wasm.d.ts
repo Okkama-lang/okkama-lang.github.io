@@ -7,7 +7,11 @@ export function provide(name: string, bytes: Uint8Array | number[]): string;
 
 export function requirements(spb: Uint8Array | number[]): string;
 
-export function run(spb: Uint8Array | number[], request: string): string;
+/**
+ * With `sink`, every write goes to it while the program runs and the answer's `output` is empty; without it
+ * the output comes back in the answer.
+ */
+export function run(spb: Uint8Array | number[], request: string, sink?: any | null): string;
 
 export function version(): string;
 
@@ -18,7 +22,7 @@ export interface InitOutput {
     readonly lastPanic: () => [number, number];
     readonly provide: (a: number, b: number, c: number, d: number) => [number, number];
     readonly requirements: (a: number, b: number) => [number, number];
-    readonly run: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly run: (a: number, b: number, c: number, d: number, e: number) => [number, number];
     readonly version: () => [number, number];
     readonly __wbindgen_exn_store: (a: number) => void;
     readonly __externref_table_alloc: () => number;

@@ -4,11 +4,14 @@
 //   page → {type: 'init', module}                      worker → {type: 'ready', version}
 //   page → {type: 'requirements', spb}                 worker → {type: 'requirements', result: {refused, files}}
 //   page → {type: 'run', spb, stdin, files: [{name, bytes}]}
-//                                                      worker → {type: 'done', result, elapsed}
+//                                                      worker → {type: 'chunks', chunks} while it runs,
+//                                                               then {type: 'done', result, elapsed}
 //   any failure of the instance                        worker → {type: 'trap', message}
 //
-// `result` is sparrow-wasm's run: {exit, output: [{stream, text, t}], report, uncaught}; `t` is in nanoseconds on
-// the run's virtual timeline (a sleep moves it without waiting), `elapsed` the real milliseconds the run took.
+// Every write reaches the page while the program runs (sparrow-wasm's output sink, #1134): a chunk {stream, text, t},
+// `t` in nanoseconds on the run's virtual timeline (a sleep moves it without waiting). The worker posts each as it
+// comes (the page batches its drawing per frame), so a run the page stops keeps what it printed. `result` is sparrow-wasm's run: {exit,
+// output: [] (streamed), report, uncaught}; `elapsed` the real milliseconds the run took.
 
 import * as sparrow from './pkg/sparrow_wasm.js';
 
@@ -34,8 +37,11 @@ self.onmessage = ({ data }) => {
         const given = JSON.parse(sparrow.provide(file.name, file.bytes));
         if (given.error) throw new Error(`${file.name}: ${given.error}`);
       }
+      // Each write goes to the page at once: a run is one synchronous call, so a chunk held back for a batch would
+      // wait for the next write, which a program that prints and then computes (or is stopped) never makes.
+      const sink = text => self.postMessage({ type: 'chunks', chunks: [JSON.parse(text)] });
       const started = performance.now();
-      const result = JSON.parse(sparrow.run(data.spb, JSON.stringify({ stdin: data.stdin || '' })));
+      const result = JSON.parse(sparrow.run(data.spb, JSON.stringify({ stdin: data.stdin || '' }), sink));
       self.postMessage({ type: 'done', result, elapsed: performance.now() - started });
     }
   } catch (error) {

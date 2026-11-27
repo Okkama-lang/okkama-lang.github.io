@@ -900,8 +900,9 @@ $('apply-format').addEventListener('click', () => {
 
 // `okkama run` in the page: okkama-wasm builds the SPB (the CLI's diagnostics and warnings), sparrow-wasm runs it in
 // a worker of its own under the playground's profile (steps, memory and output budgets; files, sockets, processes and
-// the environment refused) with the stdin field as standard input, and the page shows the output by its moments on
-// the program's clock: a sleep is not waited for while the program runs, the page replays it. A failure is drawn
+// the environment refused) with the stdin field as standard input; its writes stream to the page while it runs, and
+// the page shows each at its moment on the program's clock (a sleep is not waited for by the runtime, the page
+// waits for it). A failure is drawn
 // with its place and stack in the sources, as `okkama run` prints it (okkama-wasm's failureText).
 const runtime = new Runtime();
 let runtimeReady = false;
@@ -909,7 +910,6 @@ const STDIN_KEY = 'okkama-playground-stdin';
 const run$ = {
   phase: 'idle', // idle | loading | building | running | replaying
   handle: null,
-  timer: null,
   box: null, // the Output panel's content for the last run
   console: null,
   last: null, // {source, path, stdout, exit} of the last finished run, for Expected
@@ -949,7 +949,7 @@ function appendOutput(stream, text) {
   const pre = run$.console;
   const clean = text.replace(ESCAPES, '');
   if (!clean) return;
-  const stick = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 8 && panel.scrollHeight - panel.scrollTop - panel.clientHeight < 24;
+  const stick = panel.scrollHeight - panel.scrollTop - panel.clientHeight < 24;
   const last = pre.lastChild;
   if (last && last.dataset.stream === stream) last.textContent += clean;
   else {
@@ -958,6 +958,73 @@ function appendOutput(stream, text) {
     pre.append(span);
   }
   if (stick && run$.box.isConnected) panel.scrollTop = panel.scrollHeight;
+}
+
+// The output by its marks. Chunks arrive while the program runs (sparrow-wasm's sink); a chunk written at t on the
+// program's clock appears t after the run started, not sooner: at once when its moment has passed, else at it (a
+// sleep the runtime skipped is waited for here). Due chunks are written to the page once per animation frame.
+const show = { queue: [], base: 0, frame: 0, timer: 0, stdout: '', clock: 0, drained: null };
+
+function resetShow() {
+  cancelShow();
+  Object.assign(show, { queue: [], base: performance.now(), stdout: '', clock: 0, drained: null });
+}
+
+function cancelShow() {
+  if (show.frame) cancelAnimationFrame(show.frame);
+  clearTimeout(show.timer);
+  show.frame = 0;
+  show.timer = 0;
+}
+
+function receive(chunks) {
+  for (const chunk of chunks) {
+    show.queue.push(chunk);
+    if (chunk.stream === 'stdout') show.stdout += chunk.text;
+    show.clock = Math.max(show.clock, chunk.t / 1e6);
+  }
+  scheduleShow();
+}
+
+function scheduleShow() {
+  if (show.frame || show.timer) return;
+  if (!show.queue.length) {
+    const drained = show.drained;
+    show.drained = null;
+    if (drained) drained();
+    return;
+  }
+  const wait = show.queue[0].t / 1e6 - (performance.now() - show.base);
+  if (wait > 40 || document.hidden) show.timer = setTimeout(() => { show.timer = 0; pumpShow(); }, Math.max(0, wait - 8));
+  else show.frame = requestAnimationFrame(() => { show.frame = 0; pumpShow(); });
+}
+
+function pumpShow() {
+  const now = performance.now() - show.base;
+  let due = 0;
+  while (due < show.queue.length && show.queue[due].t / 1e6 <= now) due++;
+  writeChunks(show.queue.splice(0, due));
+  scheduleShow();
+}
+
+/** Everything received, now (Skip, Stop, the watchdog, a failure). */
+function flushShow() {
+  cancelShow();
+  writeChunks(show.queue.splice(0));
+}
+
+function writeChunks(chunks) {
+  let stream = null;
+  let text = '';
+  for (const chunk of chunks) {
+    if (chunk.stream !== stream && text) {
+      appendOutput(stream, text);
+      text = '';
+    }
+    stream = chunk.stream;
+    text += chunk.text;
+  }
+  if (text) appendOutput(stream, text);
 }
 
 function runNote(text) {
@@ -981,6 +1048,7 @@ function finishRun(lines) {
 }
 
 const seconds = ms => (ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)} s` : `${Math.round(ms)} ms`);
+const profile = () => (runtime.version && runtime.version.profile) || {};
 
 async function startRun() {
   if (run$.phase === 'replaying') return run$.skip && run$.skip();
@@ -991,6 +1059,7 @@ async function startRun() {
   const stdin = $('stdin').value;
   $('command-output').textContent = `okkama run ${path}`;
   selectView('output');
+  resetShow();
   newRunBox();
   if (!runtimeReady) {
     setRunPhase('loading');
@@ -1025,39 +1094,43 @@ async function startRun() {
   if (built.stderr) appendOutput('stderr', built.stderr);
   setRunPhase('running');
   runNote('Running…');
-  const started = performance.now();
+  let started = performance.now();
   run$.handle = runtime.run(built.spb, {
     stdin,
     onRequirements: needs => {
-      if (needs.refused && needs.refused.length) run$.box.prepend(refusedBox(needs.refused));
+      const box = requirementsBox(needs);
+      if (box) run$.box.prepend(box);
       if (needs.files && needs.files.length) runNote('Running… (loading the CLDR tables it reads)');
     },
+    onStart: () => {
+      started = performance.now();
+      show.base = started;
+      runNote('Running…');
+    },
+    onChunks: receive,
   });
   const outcome = await run$.handle.done;
   run$.handle = null;
-  if (outcome.interrupted === 'stop') {
-    runNote(`Stopped after ${seconds(performance.now() - started)}.`);
-    finishRun([element('p', 'pg-exit', 'stopped')]);
+  if (outcome.interrupted) {
+    // What it printed stays; then the runtime's words for an interrupted run (`okkama run --timeout`).
+    flushShow();
+    appendOutput('stderr', profile().interrupted || 'Execution interrupted\n');
+    runNote(outcome.interrupted === 'watchdog'
+      ? `The playground stopped it after ${seconds(runtime.watchdogMs)} of computing.`
+      : `Stopped after ${seconds(performance.now() - started)}.`);
+    finishRun([element('p', 'pg-exit', outcome.interrupted === 'watchdog' ? 'interrupted by the watchdog' : 'stopped')]);
     return undefined;
   }
-  if (outcome.interrupted === 'watchdog') {
-    // The runtime's own words for an interrupted run (`okkama run --timeout`).
-    appendOutput('stderr', 'Execution interrupted\n');
-    runNote(`The playground stopped it after ${seconds(runtime.watchdogMs)} of computing.`);
-    finishRun([]);
-    return undefined;
-  }
-  if (outcome.trap) {
+  if (outcome.trap || outcome.error) {
+    flushShow();
     runNote('');
-    finishRun([trapBox('Sparrow stopped on this program (a runtime trap). This is a bug in the runtime, not in your program; please report it with the code.', outcome.trap)]);
-    return undefined;
-  }
-  if (outcome.error) {
-    runNote('');
-    finishRun([element('p', 'pg-trap-line', outcome.error)]);
+    finishRun([outcome.trap
+      ? trapBox('Sparrow stopped on this program (a runtime trap). This is a bug in the runtime, not in your program; please report it with the code.', outcome.trap)
+      : element('p', 'pg-trap-line', outcome.error)]);
     return undefined;
   }
   const result = outcome.result;
+  if (result.output && result.output.length) receive(result.output); // a runtime without the sink
   let failure = '';
   if (result.report) {
     failure = result.report;
@@ -1066,53 +1139,31 @@ async function startRun() {
       if (drawn.ok && typeof drawn.text === 'string') failure = drawn.text;
     } catch { /* the report without its place */ }
   }
-  replayOutput(result, outcome.elapsed, () => {
+  const finish = () => {
+    run$.skip = null;
     if (failure) appendOutput('stderr', failure);
-    const stdout = result.output.filter(piece => piece.stream === 'stdout').map(piece => piece.text).join('');
-    run$.last = { source, path, stdout, exit: result.exit };
-    const clock = result.output.length ? result.output[result.output.length - 1].t / 1e6 : 0;
-    const timing = clock > outcome.elapsed + 50 ? `${seconds(clock)} on the program's clock, ${seconds(outcome.elapsed)} to compute` : `${seconds(outcome.elapsed)}`;
+    run$.last = { source, path, stdout: show.stdout, exit: result.exit };
+    const timing = show.clock > outcome.elapsed + 50
+      ? `${seconds(show.clock)} on the program's clock, ${seconds(outcome.elapsed)} to compute`
+      : seconds(outcome.elapsed);
     runNote(`Ran in ${timing}.${tests() ? ' Tests do not run in the playground yet: this was main.' : ''}`);
     finishRun([element('p', `pg-exit${result.exit ? ' pg-exit-failed' : ''}`, `exit ${result.exit}`)]);
-  });
-  return undefined;
-}
-
-/** Show `result.output` by its marks: what the program wrote at t appears t after the run began, not sooner. */
-function replayOutput(result, elapsed, done) {
-  const pieces = result.output;
-  const base = performance.now() - elapsed;
-  let at = 0;
-  let over = false;
-  const end = () => {
-    if (over) return;
-    over = true;
-    clearTimeout(run$.timer);
-    run$.skip = null;
-    done();
   };
-  const step = () => {
-    const now = performance.now() - base;
-    while (at < pieces.length && pieces[at].t / 1e6 <= now) {
-      appendOutput(pieces[at].stream, pieces[at].text);
-      at++;
-    }
-    if (at >= pieces.length) return end();
-    run$.timer = setTimeout(step, Math.max(0, pieces[at].t / 1e6 - (performance.now() - base)));
+  if (!show.queue.length && !show.frame && !show.timer) {
+    finish();
     return undefined;
-  };
-  run$.skip = () => {
-    while (at < pieces.length) {
-      appendOutput(pieces[at].stream, pieces[at].text);
-      at++;
-    }
-    end();
-  };
-  step();
-  if (!over) {
-    setRunPhase('replaying');
-    runNote('Replaying the output on the program’s clock…');
   }
+  // The program has ended; what it wrote after a skipped sleep still waits for its moment.
+  setRunPhase('replaying');
+  runNote('Showing the output on the program’s clock…');
+  run$.skip = () => {
+    show.drained = null;
+    flushShow();
+    finish();
+  };
+  show.drained = finish;
+  scheduleShow();
+  return undefined;
 }
 
 function stopRun() {
@@ -1123,15 +1174,31 @@ function stopRun() {
   }
 }
 
-function refusedBox(refused) {
-  const box = element('div', 'pg-refused');
+/** What a run needs that the playground lacks: the natives it can reach (it stops at the first it calls), and in a
+ * details line the ones its modules declare but it never reaches. Null when there is nothing to say. */
+function requirementsBox(needs) {
+  const refused = needs.refused || [];
+  const unreached = (needs.declared || []).filter(symbol => !refused.includes(symbol));
+  if (!refused.length && !unreached.length) return null;
+  const list = symbols => {
+    const ul = element('ul');
+    for (const symbol of symbols.slice(0, 12)) ul.append(element('li', '', symbol));
+    if (symbols.length > 12) ul.append(element('li', '', `and ${symbols.length - 12} more`));
+    return ul;
+  };
+  const box = element('div', refused.length ? 'pg-refused' : 'pg-declared');
   box.setAttribute('role', 'note');
-  box.append(element('strong', '', 'This program uses what the playground does not offer.'));
-  box.append(element('p', '', 'Files, sockets, processes, the environment and the terminal stay outside the browser. The program runs until it reaches one of these and stops there with “not available in the playground”; run it with okkama on your machine for the rest.'));
-  const list = element('ul');
-  for (const symbol of refused.slice(0, 8)) list.append(element('li', '', symbol));
-  if (refused.length > 8) list.append(element('li', '', `and ${refused.length - 8} more`));
-  box.append(list);
+  if (refused.length) {
+    box.append(element('strong', '', 'This program can reach what the playground does not offer.'));
+    box.append(element('p', '', 'Files, sockets, processes, the environment and the terminal stay outside the browser. The program runs until it calls one of these and stops there with “not available in the playground”; run it with okkama on your machine for the rest.'));
+    box.append(list(refused));
+  }
+  if (unreached.length) {
+    const details = element('details');
+    details.append(element('summary', '', `${plural(unreached.length, 'more native')} the playground lacks ${unreached.length === 1 ? 'is' : 'are'} declared by the modules it imports, but never reached from main`));
+    details.append(list(unreached));
+    box.append(details);
+  }
   return box;
 }
 
@@ -1155,7 +1222,12 @@ function renderOutput() {
   }
   const empty = element('div', 'pg-empty');
   empty.append(element('p', '', 'Press Run (Ctrl+Enter) to build the program and run it on Sparrow, in your browser.'));
-  empty.append(element('p', 'pg-muted-small', 'Files, sockets, processes and the environment are not available here; a program gets 5·10⁷ steps, 256 MiB and 1 MiB of output, and 15 s of computing.'));
+  const limits = profile();
+  const mib = bytes => `${Math.round(bytes / 1048576)} MiB`;
+  const budget = limits.steps
+    ? `${limits.steps.toLocaleString('en')} steps, ${mib(limits.memory)} of memory, ${mib(limits.output)} of output`
+    : '5·10⁷ steps, 256 MiB of memory, 1 MiB of output';
+  empty.append(element('p', 'pg-muted-small', `Files, sockets, processes and the environment are not available here. A program gets ${budget}, and ${seconds(runtime.watchdogMs)} of computing.`));
   panel.append(empty);
 }
 
